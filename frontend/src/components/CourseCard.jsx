@@ -20,6 +20,7 @@ export default function CourseCard({ course }) {
     price
   } = course;
 
+  // Use MongoDB _id for navigating to the course details page (/courses/:id)
   const courseId = _id || id || '';
 
   return (
