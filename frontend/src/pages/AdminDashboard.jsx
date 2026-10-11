@@ -23,17 +23,35 @@ function AdminDashboard() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formServerError, setFormServerError] = useState('');
 
+  // Delete confirmation modal states
+  const [courseToDelete, setCourseToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
+
   // User feedback message state (success / error notifications)
   const [feedback, setFeedback] = useState(null);
 
+  // Auto-dismiss success feedback banners after 4 seconds
+  useEffect(() => {
+    if (feedback && feedback.type === 'success') {
+      const timer = setTimeout(() => {
+        setFeedback(null);
+      }, 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [feedback]);
+
   // Helper to build auth headers
   const getAuthHeaders = useCallback(() => {
-    return token ? { Authorization: `Bearer ${token}` } : {};
+    const activeToken = token || localStorage.getItem('token');
+    return activeToken ? { Authorization: `Bearer ${activeToken}` } : {};
   }, [token]);
 
   // Manual fetch function for retries or post-mutation sync
-  const fetchCourses = useCallback(() => {
-    setIsLoading(true);
+  const fetchCourses = useCallback((showLoadingSpinner = true) => {
+    if (showLoadingSpinner) {
+      setIsLoading(true);
+    }
     setFetchError('');
     return axios
       .get(`${API_BASE_URL}/courses`, {
@@ -54,7 +72,9 @@ function AdminDashboard() {
         setFetchError(message);
       })
       .finally(() => {
-        setIsLoading(false);
+        if (showLoadingSpinner) {
+          setIsLoading(false);
+        }
       });
   }, [API_BASE_URL, getAuthHeaders]);
 
@@ -148,22 +168,34 @@ function AdminDashboard() {
             ...courseData,
           };
 
-          // Update local state with modified course
+          // Update local state dynamically without full page reload
           setCourses((prev) =>
             prev.map((c) => ((c._id || c.id) === courseId ? { ...c, ...updatedCourse } : c))
           );
 
           setFeedback({
             type: 'success',
-            message: `Course "${updatedCourse.title || courseData.title}" updated successfully!`,
+            message:
+              res.data?.message ||
+              `Course "${updatedCourse.title || courseData.title}" updated successfully!`,
           });
 
           setIsModalOpen(false);
           setEditingCourse(null);
+
+          // Re-fetch courses in background to ensure database sync
+          fetchCourses(false);
         } catch (apiErr) {
           // Keep modal open and report API error without losing form data
           const message =
-            apiErr.response?.data?.message || 'Failed to update course on the backend.';
+            apiErr.response?.data?.message ||
+            (apiErr.response?.status === 401
+              ? 'Session expired. Please log in again.'
+              : apiErr.response?.status === 403
+              ? 'Admin privileges required to update courses.'
+              : apiErr.response?.status === 400
+              ? 'Validation error: Please ensure all fields are correct.'
+              : 'Failed to update course on the backend.');
           setFormServerError(message);
         }
       } else {
@@ -181,22 +213,30 @@ function AdminDashboard() {
 
           if (newCourse) {
             setCourses((prev) => [newCourse, ...prev]);
-          } else {
-            // Refetch to sync state with database
-            await fetchCourses();
           }
 
           setFeedback({
             type: 'success',
-            message: `Course "${courseData.title}" added successfully!`,
+            message:
+              res.data?.message || `Course "${courseData.title}" added successfully!`,
           });
 
           setIsModalOpen(false);
           setEditingCourse(null);
+
+          // Re-fetch courses in background to ensure database sync
+          fetchCourses(false);
         } catch (apiErr) {
           // Keep modal open and report API error without losing form data
           const message =
-            apiErr.response?.data?.message || 'Failed to create course on the backend.';
+            apiErr.response?.data?.message ||
+            (apiErr.response?.status === 401
+              ? 'Session expired. Please log in again.'
+              : apiErr.response?.status === 403
+              ? 'Admin privileges required to create courses.'
+              : apiErr.response?.status === 400
+              ? 'Validation error: Please ensure all fields are correct.'
+              : 'Failed to create course on the backend.');
           setFormServerError(message);
         }
       }
@@ -207,26 +247,62 @@ function AdminDashboard() {
     }
   };
 
-  // Delete course action connected to real backend DELETE endpoint
-  const handleDeleteCourse = async (courseId, courseTitle) => {
-    const confirmed = window.confirm(`Are you sure you want to delete "${courseTitle}"?`);
-    if (!confirmed) return;
+  // Open delete confirmation modal to prevent accidental deletion
+  const handleOpenDeleteModal = (course) => {
+    setDeleteError('');
+    setCourseToDelete({
+      id: course._id || course.id,
+      title: course.title,
+    });
+  };
+
+  // Close delete confirmation modal
+  const handleCloseDeleteModal = () => {
+    if (!isDeleting) {
+      setCourseToDelete(null);
+      setDeleteError('');
+    }
+  };
+
+  // Execute delete action connected to real backend DELETE endpoint
+  const handleConfirmDelete = async () => {
+    if (!courseToDelete) return;
+
+    setIsDeleting(true);
+    setDeleteError('');
 
     try {
-      await axios.delete(`${API_BASE_URL}/courses/${courseId}`, {
+      const res = await axios.delete(`${API_BASE_URL}/courses/${courseToDelete.id}`, {
         headers: getAuthHeaders(),
       });
 
-      // Update state only on successful deletion
-      setCourses((prev) => prev.filter((c) => (c._id || c.id) !== courseId));
+      const successMessage =
+        res.data?.message || `Course "${courseToDelete.title}" deleted successfully!`;
+
+      // Update state dynamically without full page reload
+      setCourses((prev) => prev.filter((c) => (c._id || c.id) !== courseToDelete.id));
+
       setFeedback({
         type: 'success',
-        message: `Course "${courseTitle}" deleted successfully!`,
+        message: successMessage,
       });
+
+      setCourseToDelete(null);
+
+      // Re-fetch courses in background to ensure database sync
+      fetchCourses(false);
     } catch (apiErr) {
       const message =
-        apiErr.response?.data?.message || 'Failed to delete course on the server.';
+        apiErr.response?.data?.message ||
+        (apiErr.response?.status === 401
+          ? 'Session expired. Please log in again.'
+          : apiErr.response?.status === 403
+          ? 'Admin privileges required to delete courses.'
+          : 'Failed to delete course on the server.');
+      setDeleteError(message);
       setFeedback({ type: 'error', message });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -382,7 +458,7 @@ function AdminDashboard() {
                           <button
                             type="button"
                             className="btn btn-delete"
-                            onClick={() => handleDeleteCourse(courseId, course.title)}
+                            onClick={() => handleOpenDeleteModal(course)}
                           >
                             Delete
                           </button>
@@ -396,6 +472,57 @@ function AdminDashboard() {
           </div>
         )}
       </section>
+
+      {/* Delete Confirmation Modal */}
+      {courseToDelete && (
+        <div className="modal-overlay" onClick={handleCloseDeleteModal}>
+          <div
+            className="modal-container delete-confirm-modal"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-dialog-title"
+          >
+            <div className="delete-modal-header">
+              <span className="delete-warning-icon" aria-hidden="true">
+                ⚠️
+              </span>
+              <h3 id="delete-dialog-title">Delete Course Confirmation</h3>
+            </div>
+            <p className="delete-modal-text">
+              Are you sure you want to delete <strong>&ldquo;{courseToDelete.title}&rdquo;</strong>?
+            </p>
+            <p className="delete-modal-subtext">
+              This action cannot be undone and will permanently remove this course from the database and public catalog.
+            </p>
+
+            {deleteError && (
+              <div className="form-server-error" role="alert">
+                {deleteError}
+              </div>
+            )}
+
+            <div className="form-actions delete-modal-actions">
+              <button
+                type="button"
+                className="btn btn-cancel"
+                onClick={handleCloseDeleteModal}
+                disabled={isDeleting}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn-danger"
+                onClick={handleConfirmDelete}
+                disabled={isDeleting}
+              >
+                {isDeleting ? 'Deleting...' : 'Yes, Delete Course'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal / Panel for Adding & Editing Courses */}
       {isModalOpen && (
