@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import CourseCard from '../components/CourseCard';
+import SearchBar from '../components/SearchBar';
 import { useAuth } from '../context/AuthContext';
 import '../courses.css';
 
@@ -45,11 +46,12 @@ const SAMPLE_COURSES = [
 
 /**
  * CoursesPage Component
- * Fetches and displays available courses in a responsive card grid.
+ * Fetches and displays available courses in a responsive card grid with real-time search.
  * Handles loading, errors, empty states, and fallback sample data.
  */
 export default function CoursesPage() {
   const [courses, setCourses] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [isUsingSampleData, setIsUsingSampleData] = useState(false);
@@ -105,6 +107,15 @@ export default function CoursesPage() {
     setRefreshTrigger((prev) => prev + 1);
   };
 
+  // Frontend real-time filtering by course title and instructor
+  const trimmedSearch = searchTerm.trim().toLowerCase();
+  const filteredCourses = courses.filter((course) => {
+    if (!trimmedSearch) return true;
+    const title = (course.title || '').toLowerCase();
+    const instructor = (course.instructor || '').toLowerCase();
+    return title.includes(trimmedSearch) || instructor.includes(trimmedSearch);
+  });
+
   return (
     <div className="courses-page-container">
       {/* Header section */}
@@ -143,7 +154,7 @@ export default function CoursesPage() {
           <p>Loading course catalog...</p>
         </div>
       ) : courses.length === 0 ? (
-        /* Empty course list state */
+        /* Empty course list state (database has no courses) */
         <div className="courses-empty-state">
           <span className="empty-icon">📚</span>
           <h3>No Courses Found</h3>
@@ -157,12 +168,34 @@ export default function CoursesPage() {
           </button>
         </div>
       ) : (
-        /* Responsive Courses Grid */
-        <div className="courses-grid">
-          {courses.map((course) => (
-            <CourseCard key={course._id || course.id} course={course} />
-          ))}
-        </div>
+        <>
+          {/* Search section with matching count */}
+          <div className="courses-search-section">
+            <SearchBar
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            <p className="courses-count">
+              Showing {filteredCourses.length} of {courses.length} {courses.length === 1 ? 'course' : 'courses'}
+            </p>
+          </div>
+
+          {/* If search query has no matches, show specific no-match message */}
+          {filteredCourses.length === 0 ? (
+            <div className="courses-no-results">
+              <span className="empty-icon">🔍</span>
+              <h3>No courses match your search</h3>
+              <p>Try searching with a different course title or instructor name.</p>
+            </div>
+          ) : (
+            /* Responsive Courses Grid */
+            <div className="courses-grid">
+              {filteredCourses.map((course) => (
+                <CourseCard key={course._id || course.id} course={course} />
+              ))}
+            </div>
+          )}
+        </>
       )}
     </div>
   );

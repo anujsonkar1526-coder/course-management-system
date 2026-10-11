@@ -69,21 +69,26 @@ export default function CourseDetailsPage() {
         // Backend returns: { success: true, course: { ... } }
         if (res.data?.success && res.data?.course) {
           setCourse(res.data.course);
-        } else if (res.data) {
+          setError('');
+          setIsUsingSampleData(false);
+        } else if (res.data && (res.data._id || res.data.title)) {
           setCourse(res.data);
+          setError('');
+          setIsUsingSampleData(false);
         } else {
-          setError('Course not found');
+          setCourse(null);
+          setError(res.data?.message || 'Course not found');
         }
-        setError('');
-        setIsUsingSampleData(false);
       })
       .catch((err) => {
         if (!isMounted) return;
 
         // Backend returns 404 for missing course and 400 for invalid ID
         if (err.response?.status === 404) {
+          setCourse(null);
           setError('Course not found');
         } else if (err.response?.status === 400) {
+          setCourse(null);
           setError(err.response?.data?.message || 'Invalid course ID');
         } else {
           // Backend is offline or network error: check sample data for visual testing
@@ -93,6 +98,7 @@ export default function CourseDetailsPage() {
             setIsUsingSampleData(true);
             setError('');
           } else {
+            setCourse(null);
             setError(
               err.response?.data?.message ||
                 'Unable to load course details. Backend server may be offline.'

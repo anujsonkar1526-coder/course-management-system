@@ -75,9 +75,91 @@
   padding: 1px 4px;
 }
 
-.retry-btn {
-  flex-shrink: 0;
-  white-space: nowrap;
+/* Search Bar & Search Meta */
+.courses-search-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+.search-bar-container {
+  position: relative;
+  width: 100%;
+}
+
+.search-bar-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1rem;
+  color: var(--text);
+  pointer-events: none;
+}
+
+.search-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px 16px 12px 42px;
+  font-size: 1rem;
+  font-family: inherit;
+  color: var(--text-h);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.search-input::placeholder {
+  color: var(--text);
+  opacity: 0.7;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-bg);
+}
+
+.courses-count {
+  font-size: 0.92rem;
+  color: var(--text);
+  font-weight: 500;
+  margin: 0;
+}
+
+/* No Search Results State */
+.courses-no-results {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 56px 20px;
+  background: var(--bg);
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.courses-no-results .empty-icon {
+  font-size: 2.8rem;
+  margin-bottom: 12px;
+}
+
+.courses-no-results h3 {
+  margin: 0 0 8px;
+  font-size: 1.3rem;
+  color: var(--text-h);
+}
+
+.courses-no-results p {
+  color: var(--text);
+  font-size: 0.95rem;
+  margin: 0;
+  max-width: 440px;
 }
 
 /* Loading & Empty States */
@@ -277,6 +359,24 @@
 
   .retry-btn {
     align-self: flex-start;
+  }
+
+  .courses-search-section {
+    margin-bottom: 20px;
+  }
+
+  .search-input {
+    font-size: 0.95rem;
+    padding: 10px 14px 10px 38px;
+  }
+
+  .search-bar-icon {
+    left: 12px;
+    font-size: 0.95rem;
+  }
+
+  .courses-no-results {
+    padding: 40px 16px;
   }
 }
 
