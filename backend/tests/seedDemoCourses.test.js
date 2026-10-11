@@ -6,7 +6,7 @@ const assert = require("node:assert");
 
 const Course = require("../src/models/Course");
 const demoCourses = require("../data/demoCourses");
-const { seedCourses } = require("../scripts/seedDemoCourses");
+const { seedCourses, checkSafeToSeed } = require("../scripts/seedDemoCourses");
 
 const SCHEMA_FIELDS = ["title", "description", "instructor", "duration", "price"];
 
@@ -82,4 +82,28 @@ test("seedCourses never deletes anything", async () => {
     assert.strictEqual(deleteMany.mock.callCount(), 0);
     assert.strictEqual(deleteOne.mock.callCount(), 0);
     assert.strictEqual(findAndDelete.mock.callCount(), 0);
+});
+
+// ==========================================================
+// Safety checks (run before the database is touched)
+// ==========================================================
+test("safety check passes when CONFIRM_DEMO_SEED is yes and NODE_ENV is not production", () => {
+    assert.strictEqual(checkSafeToSeed({ CONFIRM_DEMO_SEED: "yes" }), null);
+    assert.strictEqual(checkSafeToSeed({ CONFIRM_DEMO_SEED: "yes", NODE_ENV: "development" }), null);
+});
+
+test("safety check refuses when CONFIRM_DEMO_SEED is missing", () => {
+    const message = checkSafeToSeed({});
+    assert.ok(message.includes("CONFIRM_DEMO_SEED=yes"), "message should say how to confirm");
+});
+
+for (const value of ["", "no", "true", "1", "YES", "y"]) {
+    test(`safety check refuses when CONFIRM_DEMO_SEED is "${value}" (only "yes" is accepted)`, () => {
+        assert.notStrictEqual(checkSafeToSeed({ CONFIRM_DEMO_SEED: value }), null);
+    });
+}
+
+test("safety check refuses in production even with CONFIRM_DEMO_SEED=yes", () => {
+    const message = checkSafeToSeed({ NODE_ENV: "production", CONFIRM_DEMO_SEED: "yes" });
+    assert.ok(message.includes("production"));
 });

@@ -1,9 +1,14 @@
 // Seeds the demo courses into MongoDB.
-// Run it yourself with: npm run seed:demo (from the backend folder)
+// Run it yourself from the backend folder with:
+//     CONFIRM_DEMO_SEED=yes npm run seed:demo
 // It is never run when the server starts.
 //
 // Safe to run again: a course is only added if no course with the same title
 // exists. Nothing is deleted and existing courses are never changed.
+//
+// Safety checks (it stops before connecting to the database if either fails):
+//   1. NODE_ENV must not be "production"
+//   2. CONFIRM_DEMO_SEED must be set to "yes"
 require("dotenv").config();
 
 const mongoose = require("mongoose");
@@ -34,10 +39,24 @@ const seedCourses = async (courses) => {
     return { added, skipped };
 };
 
+// Checks the two safety rules. Returns an error message, or null if it is safe to seed.
+const checkSafeToSeed = (env) => {
+    if (env.NODE_ENV === "production") {
+        return "Refusing to seed demo data because NODE_ENV is 'production'.";
+    }
+
+    if (env.CONFIRM_DEMO_SEED !== "yes") {
+        return "Refusing to seed demo data. To confirm you want to seed this database, run: CONFIRM_DEMO_SEED=yes npm run seed:demo";
+    }
+
+    return null;
+};
+
 const run = async () => {
-    // Do not seed a production database by accident
-    if (process.env.NODE_ENV === "production") {
-        console.error("Refusing to seed demo data because NODE_ENV is 'production'.");
+    // Stop before touching the database if a safety check fails
+    const problem = checkSafeToSeed(process.env);
+    if (problem) {
+        console.error(problem);
         process.exit(1);
     }
 
@@ -60,4 +79,4 @@ if (require.main === module) {
     run();
 }
 
-module.exports = { seedCourses };
+module.exports = { seedCourses, checkSafeToSeed };
