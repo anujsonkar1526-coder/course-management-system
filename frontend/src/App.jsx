@@ -7,6 +7,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import AdminRoute from './components/AdminRoute';
 import ProtectedRoute from './components/ProtectedRoute';
+import AdminDashboard from './pages/AdminDashboard';
 import './auth.css';
 import './App.css';
 
@@ -78,38 +79,6 @@ function CourseListingPlaceholder() {
 }
 
 /**
- * Temporary Route Placeholder: Admin Dashboard Page
- * Preserves the route contract for Naman, whose PR #10 contains the full Admin Dashboard & Course Forms.
- * Protected by AdminRoute to verify Role-Based Access Control.
- */
-function AdminDashboardPlaceholder() {
-  const { user } = useAuth();
-
-  return (
-    <div className="placeholder-container">
-      <div className="placeholder-card">
-        <h2>⚙️ Admin Dashboard</h2>
-        <p className="placeholder-note">
-          Notice: Naman's PR #10 contains the full Admin Dashboard & Course Forms.
-        </p>
-        <p>
-          🎉 <strong>Role-Based Access Control Verified!</strong> You are authenticated as an{' '}
-          <span className="badge badge-admin">{user?.role}</span> ({user?.name || user?.email}).
-        </p>
-        <p style={{ marginTop: '16px' }}>
-          Normal users cannot access this area (HTTP 403 Forbidden).
-        </p>
-        <div className="action-buttons">
-          <Link to="/courses" className="btn btn-outline">
-            &larr; Back to Courses
-          </Link>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/**
  * Main Application Component
  * Single BrowserRouter wrapping the AuthProvider, Navbar, and application Routes.
  */
@@ -150,12 +119,12 @@ function App() {
               }
             />
 
-            {/* Protected Admin Route (Naman's PR #10 placeholder) */}
+            {/* Protected Admin Route with AdminDashboard */}
             <Route
               path="/admin"
               element={
                 <AdminRoute>
-                  <AdminDashboardPlaceholder />
+                  <AdminDashboard />
                 </AdminRoute>
               }
             />
