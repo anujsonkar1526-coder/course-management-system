@@ -152,7 +152,40 @@ const login = async (req, res) => {
     }
 };
 
+/**
+ * @desc    Get current authenticated user info
+ * @route   GET /api/auth/me
+ * @access  Private
+ */
+const getMe = async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id).select("-password");
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found"
+            });
+        }
+        return res.status(200).json({
+            success: true,
+            user: {
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                role: user.role
+            }
+        });
+    } catch (error) {
+        console.error("GetMe error:", error.message);
+        return res.status(500).json({
+            success: false,
+            message: "Server error retrieving user profile"
+        });
+    }
+};
+
 module.exports = {
     register,
-    login
+    login,
+    getMe
 };

@@ -1,122 +1,172 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import { useState, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, Link } from 'react-router-dom';
+import axios from 'axios';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import Navbar from './components/Navbar';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import AdminRoute from './components/AdminRoute';
+import ProtectedRoute from './components/ProtectedRoute';
+import './auth.css';
+import './App.css';
 
-function App() {
-  const [count, setCount] = useState(0)
+/**
+ * Temporary Route Placeholder: Course Listing Page
+ * Preserves the route contract for Divyansh, who is actively developing the full Course Listing page.
+ * Demonstrates connectivity with Anuj's merged Course Read APIs (GET /api/courses).
+ */
+function CourseListingPlaceholder() {
+  const [courses, setCourses] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const { API_BASE_URL } = useAuth();
+
+  useEffect(() => {
+    let isMounted = true;
+    axios
+      .get(`${API_BASE_URL}/courses`)
+      .then((res) => {
+        if (isMounted && res.data?.success) {
+          setCourses(res.data.courses || []);
+        }
+      })
+      .catch((err) => {
+        if (isMounted) {
+          setError(err.response?.data?.message || 'Could not load courses');
+        }
+      })
+      .finally(() => {
+        if (isMounted) setLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [API_BASE_URL]);
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <div className="placeholder-container">
+      <div className="placeholder-card">
+        <h2>📚 Available Courses</h2>
+        <p className="placeholder-note">
+          Notice: Divyansh is actively developing the Course Listing pages. This placeholder connects to Anuj's merged Course Read API.
+        </p>
 
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+        {loading ? (
+          <div className="auth-loading-state">
+            <div className="spinner"></div>
+            <p>Loading course catalog...</p>
+          </div>
+        ) : error ? (
+          <p className="text-muted">{error}</p>
+        ) : courses.length === 0 ? (
+          <p className="text-muted">No courses currently in catalog. Stay tuned!</p>
+        ) : (
+          <div className="course-preview-list">
+            {courses.map((c) => (
+              <div key={c._id} className="course-preview-item">
+                <h3>{c.title}</h3>
+                <p>{c.description}</p>
+                <small>Instructor: {c.instructor} | Duration: {c.duration} | Price: ₹{c.price}</small>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
 
-export default App
+/**
+ * Temporary Route Placeholder: Admin Dashboard Page
+ * Preserves the route contract for Naman, whose PR #10 contains the full Admin Dashboard & Course Forms.
+ * Protected by AdminRoute to verify Role-Based Access Control.
+ */
+function AdminDashboardPlaceholder() {
+  const { user } = useAuth();
+
+  return (
+    <div className="placeholder-container">
+      <div className="placeholder-card">
+        <h2>⚙️ Admin Dashboard</h2>
+        <p className="placeholder-note">
+          Notice: Naman's PR #10 contains the full Admin Dashboard & Course Forms.
+        </p>
+        <p>
+          🎉 <strong>Role-Based Access Control Verified!</strong> You are authenticated as an{' '}
+          <span className="badge badge-admin">{user?.role}</span> ({user?.name || user?.email}).
+        </p>
+        <p style={{ marginTop: '16px' }}>
+          Normal users cannot access this area (HTTP 403 Forbidden).
+        </p>
+        <div className="action-buttons">
+          <Link to="/courses" className="btn btn-outline">
+            &larr; Back to Courses
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Main Application Component
+ * Single BrowserRouter wrapping the AuthProvider, Navbar, and application Routes.
+ */
+function App() {
+  return (
+    <BrowserRouter>
+      <AuthProvider>
+        <Navbar />
+        <main className="main-content">
+          <Routes>
+            {/* Default redirect to /courses */}
+            <Route path="/" element={<Navigate to="/courses" replace />} />
+
+            {/* Public authentication routes */}
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+
+            {/* Course catalog route (Divyansh's placeholder) */}
+            <Route path="/courses" element={<CourseListingPlaceholder />} />
+
+            {/* Protected Student Route using ProtectedRoute */}
+            <Route
+              path="/my-courses"
+              element={
+                <ProtectedRoute>
+                  <div className="placeholder-container">
+                    <div className="placeholder-card">
+                      <h2>🎓 My Enrolled Courses</h2>
+                      <p>Authenticated student portal. Welcome to your learning space!</p>
+                      <div className="action-buttons">
+                        <Link to="/courses" className="btn btn-outline">
+                          Browse Courses
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Protected Admin Route (Naman's PR #10 placeholder) */}
+            <Route
+              path="/admin"
+              element={
+                <AdminRoute>
+                  <AdminDashboardPlaceholder />
+                </AdminRoute>
+              }
+            />
+
+            {/* Catch-all route */}
+            <Route path="*" element={<Navigate to="/courses" replace />} />
+          </Routes>
+        </main>
+      </AuthProvider>
+    </BrowserRouter>
+  );
+}
+
+export default App;
