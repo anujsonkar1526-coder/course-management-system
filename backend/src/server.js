@@ -8,6 +8,7 @@ const express = require("express");
 const cors = require("cors");
 const connectDB = require("./config/db");
 const authRoutes = require("./routes/authRoutes");
+const courseRoutes = require("./routes/courseRoutes");
 
 // Initialize express application
 const app = express();
@@ -38,6 +39,9 @@ app.get("/api/health", (req, res) => {
 // Authentication routes (Register, Login)
 app.use("/api/auth", authRoutes);
 
+// Course routes (List & Detail)
+app.use("/api/courses", courseRoutes);
+
 // ==========================================
 // 4. START SERVER (Connect DB First)
 // ==========================================
@@ -62,4 +66,3 @@ if (require.main === module) {
 
 // Export app for testing or modular route imports
 module.exports = app;
-
